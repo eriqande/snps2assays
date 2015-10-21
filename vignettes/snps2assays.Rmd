@@ -1,0 +1,105 @@
+---
+title: "Example Uses of snps2assays"
+author: "Vignette Author"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Example Uses of snps2assays}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+There is one main function in this package `assayize()` that takes data frame input
+of the necessary ingredients (all variants, variants you want to target, and 
+consensus sequences) and then spits out information useful for ordering assays
+and knowing whether they have a good chance of being designable.
+
+There are also a few helper functions to get from common formats to the necessary data frames.
+For example, from VCF to a data frame of all the variants, or from FASTA to a data frame
+of consensus sequences.  We demonstrate those in a series of workflows here.
+
+Let's get going by loading the package:
+```{r, message=FALSE}
+library(snps2assays)
+```
+
+## grab_vcf
+Let's say that you have all your variants in a big gzipped (or not) VCF file.  Here are the
+top lines of the example vcf file that gets installed with the `snps2assays` package. They will
+run off the page, but you get the idea:
+```{r, comment = ""}
+# print out the first two lines of data (after all the headers)
+system.file("textdata", "vcf.txt.gz", package = "snps2assays") %>%
+  gzfile %>%
+  readLines(n = 20) %>%
+  cat(sep = "\n")
+```
+
+## Target SNPs
+To go along with that example VCF file we have 25 example target SNPs:
+```{r, warning=FALSE, comment = ""}
+example_target_snps
+```
+They might be a little truncated in the view above.
+
+## grab_fasta()
+Let's look at the example fasta file that comes with the package 
+and that corresponds to the sequences in 
+the example VCF file.
+```{r, comment = ""}
+# print out the first 6 lines of the fasta file
+system.file("textdata", "fasta.txt.gz", package = "snps2assays") %>%
+  gzfile %>%
+  readLines(n = 10) %>%
+  cat(sep = "\n")
+```
+Vignettes are long form documentation commonly included in packages. Because they are part of the distribution of the package, they need to be as compact as possible. The `html_vignette` output type provides a custom style sheet (and tweaks some options) to ensure that the resulting html is as small as possible. The `html_vignette` format:
+
+- Never uses retina figures
+- Has a smaller default figure size
+- Uses a custom CSS stylesheet instead of the default Twitter Bootstrap style
+
+
+
+## Vignette Info
+
+
+Note the various macros within the `vignette` section of the metadata block above. These are required in order to instruct R how to build the vignette. Note that you should change the `title` field and the `\VignetteIndexEntry` to match the title of your vignette.
+
+## Styles
+
+The `html_vignette` template includes a basic CSS theme. To override this theme you can specify your own CSS in the document metadata as follows:
+
+    output: 
+      rmarkdown::html_vignette:
+        css: mystyles.css
+
+## Figures
+
+The figure sizes have been customised so that you can easily put two images side-by-side. 
+
+```{r, fig.show='hold'}
+plot(1:10)
+plot(10:1)
+```
+
+You can enable figure captions by `fig_caption: yes` in YAML:
+
+    output:
+      rmarkdown::html_vignette:
+        fig_caption: yes
+
+Then you can use the chunk option `fig.cap = "Your figure caption."` in **knitr**.
+
+## More Examples
+
+You can write math expressions, e.g. $Y = X\beta + \epsilon$, footnotes^[A footnote here.], and tables, e.g. using `knitr::kable()`.
+
+```{r, echo=FALSE, results='asis'}
+knitr::kable(head(mtcars, 10))
+```
+
+Also a quote using `>`:
+
+> "He who gives up [code] safety for [code] speed deserves neither."
+([via](https://twitter.com/hadleywickham/status/504368538874703872))

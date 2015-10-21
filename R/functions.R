@@ -37,7 +37,7 @@
 #'    \item One there
 #' }
 #' @export
-target_snp_summaries <- function(V, targets,  consSeq = NA, reqDist = 20) {
+assayize <- function(V, targets,  consSeq = NA, reqDist = 20) {
 
   if(!("CHROM" %in% names(V))) stop("No column CHROM in V")
   if(!("POS" %in% names(V))) stop("No column POS in V")
@@ -123,4 +123,24 @@ target_snp_summaries <- function(V, targets,  consSeq = NA, reqDist = 20) {
   # and then we filter out just the SNPs that are to have assays designed, and we
   # put their designations into the sequences.
 
+}
+
+
+
+#' read in a fasta file and turn into a tbl_df data frame
+#'
+#' This reads in a fasta file and removes the leading ">" from the name of the contig
+#' so that it will match stuff in a corresponding VCF or other variant file.
+#' It then returns a tbl_df data frame with columns CHROM and consSeq.  Currently this
+#' only woks on files that have two line for each sequence, not with files that break the
+#' sequence over multiple lines.
+#' @param path  The path to the fasta file. If it is gzipped, it will automatically
+#' be gunzipped on the fly.
+grab_fasta <- function(path) {
+  readLines(gzfile(path)) %>%
+    matrix(ncol = 2, byrow = TRUE) %>%
+    as.data.frame(stringsAsFactors = FALSE) %>%
+    setNames(c("CHROM", "consSeq")) %>%
+    tbl_df %>%
+    mutate(CHROM = stringr::str_replace_all(CHROM, "^>", ""))
 }
