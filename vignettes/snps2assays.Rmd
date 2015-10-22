@@ -23,42 +23,60 @@ Let's get going by loading the package:
 library(snps2assays)
 ```
 
-## grab_vcf
+## Some Handy Functions and Example Data Sets
+
+### grab_vcf()
 Let's say that you have all your variants in a big gzipped (or not) VCF file.  Here are the
-top lines of the example vcf file that gets installed with the `snps2assays` package. They will
+top lines of the example VCF file that gets installed with the `snps2assays` package. They will
 run off the page, but you get the idea:
 ```{r, comment = ""}
 # print out the first two lines of data (after all the headers)
-system.file("textdata", "vcf.txt.gz", package = "snps2assays") %>%
-  gzfile %>%
-  readLines(n = 20) %>%
+con <- gzfile(system.file("textdata", "vcf.txt.gz", package = "snps2assays"))
+readLines(con, n = 20) %>%
   cat(sep = "\n")
+close(con)
 ```
 
-## Target SNPs
+To read a VCF file (it can be gzipped, but it can't be a BCF file!) you can use the `grab_vcf` function
+which will slurp the whole thing into a `tbl_df` data frame.  
+```{r, comment = ""}
+grab_vcf(system.file("textdata", "vcf.txt.gz", package = "snps2assays"))
+```
+Note that this function searches for 
+the header by trying to find a line that starts with "#CHROM", so, if your VCF files don't
+roll that way, you'll have problems.  
+
+### Target SNPs
 To go along with that example VCF file we have 25 example target SNPs:
 ```{r, warning=FALSE, comment = ""}
 example_target_snps
 ```
 They might be a little truncated in the view above.
 
-## grab_fasta()
+### grab_fasta()
 Let's look at the example fasta file that comes with the package 
 and that corresponds to the sequences in 
 the example VCF file.
 ```{r, comment = ""}
 # print out the first 6 lines of the fasta file
-system.file("textdata", "fasta.txt.gz", package = "snps2assays") %>%
-  gzfile %>%
-  readLines(n = 10) %>%
+con <- gzfile(system.file("textdata", "fasta.txt.gz", package = "snps2assays"))
+readLines(con, n = 10) %>%
   cat(sep = "\n")
+close(con)
 ```
-Vignettes are long form documentation commonly included in packages. Because they are part of the distribution of the package, they need to be as compact as possible. The `html_vignette` output type provides a custom style sheet (and tweaks some options) to ensure that the resulting html is as small as possible. The `html_vignette` format:
 
-- Never uses retina figures
-- Has a smaller default figure size
-- Uses a custom CSS stylesheet instead of the default Twitter Bootstrap style
+That is what the fasta file looks like.  Here is how we can read it into a data frame
+with `grab_fasta`.
+```{r, comment = ""}
+grab_fasta(system.file("textdata", "fasta.txt.gz", package = "snps2assays"))
+```
+The resulting data frame has columns `CHROM` (should correspond to the `CHROM`'s in the VCF file),
+and `Seq` (the consensus sequence).
 
+
+## Putting it All Together
+
+Now, we see how to put those together and toss everything into `assayize()`.
 
 
 ## Vignette Info

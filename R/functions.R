@@ -1,5 +1,9 @@
 
 
+#    \item{LENGTH}{The length (number of bases) of the DNA segment referred to in CHROM. This is not a standard part of
+#      most VCF files, so you might have to put this on yourself. }
+
+
 
 #' add summaries about distance to flanking snps to assay rows
 #'
@@ -12,13 +16,13 @@
 #'      This will typically be a RAD locus identifier, etc.}
 #'    \item{POS}{The position of this particular variant within the CHROM DNA.  Starts
 #'      counting from 1.}
-#'    \item{LENGTH}{The length (number of bases) of the DNA segment referred to in CHROM. This is not a standard part of
-#'      most VCF files, so you might have to put this on yourself. }
 #'    \item{REF}{The nucleotide base of the reference sequence at each of the positions.  Must be uppercase A, C, G, or T}
 #'    \item{ALT}{The alternate base(s) at each of the positions.  Must be uppercase, A, C, G, or T, or if more than 1
 #'    alternate base is present, they must be listed, and comma-separated, and there can be no more than 3 alternate bases.}
 #' }
-#' Any columns other than \code{CHROM}, \code{POS}, \code{LENGTH}, \code{REF} and \code{ALT} will be ignored.
+#' Any columns other than \code{CHROM}, \code{POS}, \code{REF} and \code{ALT} will be ignored.
+#' If consSeq is NA then V must also have a LENGTH column that gives the number of bases in the
+#' contig.
 #' @param targets A data frame of the variants that are targets for assay development.  This
 #' can also have whatever columns that are desired, but it must have CHROM and POS, concordant with \code{V},
 #' and it cannot have a column LENGTH in it.
@@ -41,7 +45,7 @@ assayize <- function(V, targets,  consSeq = NA, reqDist = 20) {
 
   if(!("CHROM" %in% names(V))) stop("No column CHROM in V")
   if(!("POS" %in% names(V))) stop("No column POS in V")
-  if(!("LENGTH" %in% names(V))) stop("No column LENGTH in V")
+  if(is.na(consSeq) && !("LENGTH" %in% names(V))) stop("No column LENGTH in V while consSeq is NA")
   if(!("REF" %in% names(V))) stop("No column REF in V")
   if(!("ALT" %in% names(V))) stop("No column ALT in V")
   if(!("CHROM" %in% names(targets))) stop("No column CHROM in targets")
@@ -50,14 +54,30 @@ assayize <- function(V, targets,  consSeq = NA, reqDist = 20) {
 
   # check here to make sure that LENGTH and POS are numeric and coerce REF and ALT to as.character
   # in case they are already factors.
+  if(is.na(consSeq) && !is.numeric(V$LENGTH)) stop("consSeq is NA so V has column LENGTH, but LENGTH is not numeric!")
+  if(!is.numeric(V$POS)) stop("POS not numeric in V")
+  if(!is.numeric(targets$POS)) stop("POS not numeric in targets")
+  if(!is.character(V$REF)) {
+    V$REF <- as.character(V$REF)
+    message("Coercing V$REF to character")
+  }
+  if(!is.character(V$ALT)) {
+    V$ALT <- as.character(V$ALT)
+    message("Coercing V$ALT to character")
+  }
 
   # if LENGTH REF or ALT are in targets, we need to remove them from there along with a message to the user
   # saying that values from V will be used.
+  if(any(names(targets) %in% c("LENGTH", "REF", "ALT"))) {
+    message("Removing LENGTH, REF, and/or ALT from parameter \"targets\".  Values from V and consSeq will be used.")
+  }
 
-  # check to make sure REF and ALT are strings and include do not include any [^ACGT,]
 
+  # check to make sure REF and ALT are strings and do not include any [^ACGT,]
+  if(any(stringr::str_detect(V$REF, "[^ACGTU]"))) stop("Detected something other than ACGT or U in the REF column in V")
+  if(any(stringr::str_detect(V$ALT, "[^ACGTU,]"))) stop("Detected something other than ACGTU or \",\" in the ALT column in V")
 
-  # if LENGTH is missing by consSeq is not, then I could certainly get LENGTH from that
+  # if LENGTH is missing but consSeq is not, then I could certainly get LENGTH from that
   # file....
 
   # make a named vector of IUPAC codes here:
@@ -136,11 +156,68 @@ assayize <- function(V, targets,  consSeq = NA, reqDist = 20) {
 #' sequence over multiple lines.
 #' @param path  The path to the fasta file. If it is gzipped, it will automatically
 #' be gunzipped on the fly.
+#' @export
+#' @examples
+#' grab_fasta(system.file("textdata", "fasta.txt.gz", package = "snps2assays"))
 grab_fasta <- function(path) {
-  readLines(gzfile(path)) %>%
+  con <- gzfile(path)
+
+  ret <- readLines(con) %>%
     matrix(ncol = 2, byrow = TRUE) %>%
     as.data.frame(stringsAsFactors = FALSE) %>%
-    setNames(c("CHROM", "consSeq")) %>%
+    setNames(c("CHROM", "Seq")) %>%
     tbl_df %>%
     mutate(CHROM = stringr::str_replace_all(CHROM, "^>", ""))
+
+  close(con)
+  ret
+}
+
+
+#' read in a (possibly gzipped) VCF file and return it as a data frame
+#'
+#' This scans a VCF file to find the header line (by searching for a line
+#' starting with "#CHROM"), and then it reads it in and returns it as a
+#' data frame.  It doesn' worry about the formatting of the genotype columns
+#' because we are typically concerned here just with getting CHROM, POS,
+#' REF, and ALT.  In fact, by default, those four columns are all that
+#' this function returns
+#' @param path The path to a VCF file (which may or may not be gzipped)
+#' @param all_cols Logical indicating whether to return all columns (TRUE)
+#' or only CHROM, POS, REF, and ALT.
+#' @param top_test How many lines to scan from the top of the file to look
+#' for the "#CHROM" showing that it is the header.
+#' @export
+#' @examples
+#' grab_vcf(system.file("textdata", "vcf.txt.gz", package = "snps2assays"))
+grab_vcf <- function(path, all_cols = FALSE, top_test = 200) {
+  con <- gzfile(path)
+
+  # first scan for the position of the header line
+  tmp <- readLines(con, n = top_test) %>%
+    stringr::str_detect("^#CHROM")
+  #close(con)
+
+  if(sum(tmp) == 0) stop("Didn't find pattern \"^#CHROM\" in the first ", top_test, " lines of file ", path)
+  if(sum(tmp) > 1) stop("Found more than one line matching pattern \"^#CHROM\" in the first ", top_test, " lines of file ", path)
+
+  head_line <- which(tmp)
+
+  ret <- read.table(con,
+                    comment = "",
+                    skip = head_line - 1,
+                    header = TRUE,
+                    stringsAsFactors = FALSE) %>%
+    tbl_df
+
+  names(ret)[1] <- "CHROM"  # deal with the comment character at the beginning there
+
+
+  if(all_cols == FALSE) {
+    ret <- ret %>%
+      select(CHROM, POS, REF, ALT)
+  }
+
+  # sort it as it should be
+  ret %>% arrange(CHROM, POS)
 }
