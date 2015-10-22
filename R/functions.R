@@ -21,7 +21,7 @@
 #'    alternate base is present, they must be listed, and comma-separated, and there can be no more than 3 alternate bases.}
 #' }
 #' Any columns other than \code{CHROM}, \code{POS}, \code{REF} and \code{ALT} will be ignored.
-#' If consSeq is NA then V must also have a LENGTH column that gives the number of bases in the
+#' If consSeq is NULL then V must also have a LENGTH column that gives the number of bases in the
 #' contig.
 #' @param targets A data frame of the variants that are targets for assay development.  This
 #' can also have whatever columns that are desired, but it must have CHROM and POS, concordant with \code{V},
@@ -29,11 +29,14 @@
 #'  The extra columns in this
 #'  data frame will all be represented in the output.
 #' @param consSeq A data frame of consensus sequences.  Must have one column \code{CHROM}, exactly concordant with the
-#' naming conventions of \code{V} and \code{targets}, and one column \code{SEQS} which are the consensus sequences as
-#' strings.  There can be more columns, but they will be ignored.  If this is NA, then the function returns just the
-#' flanking information summaries, without the sequence from which to build assays.
+#' naming conventions of \code{V} and \code{targets}, and one column \code{Seq} which holds the consensus sequences as
+#' strings.  There can be more columns, but they will be ignored.  If this is NULL, then the function returns just the
+#' flanking information summaries, without the sequence from which to build assays. However, in that
+#' case, there must be a LENGTH column in V.
 #' @param reqDist The required minimum number of bases between a target SNP and the nearest flanking SNP
 #' for a target to be designable (according to whomever's criterion).
+#' @param allVar Logical indicating whether all variable sites within the CHROMs containing the targets
+#' should be returned, or just the targets themselves.
 #' @return Returns a data frame with rows as in \code{targets} with additional columns appended to
 #' it, namely:
 #' \itemize{
@@ -41,11 +44,11 @@
 #'    \item One there
 #' }
 #' @export
-assayize <- function(V, targets,  consSeq = NA, reqDist = 20) {
+assayize <- function(V, targets,  consSeq = NULL, reqDist = 20, allVar = TRUE) {
 
   if(!("CHROM" %in% names(V))) stop("No column CHROM in V")
   if(!("POS" %in% names(V))) stop("No column POS in V")
-  if(is.na(consSeq) && !("LENGTH" %in% names(V))) stop("No column LENGTH in V while consSeq is NA")
+  if(is.null(consSeq) && !("LENGTH" %in% names(V))) stop("No column LENGTH in V while consSeq is NULL")
   if(!("REF" %in% names(V))) stop("No column REF in V")
   if(!("ALT" %in% names(V))) stop("No column ALT in V")
   if(!("CHROM" %in% names(targets))) stop("No column CHROM in targets")
@@ -54,7 +57,7 @@ assayize <- function(V, targets,  consSeq = NA, reqDist = 20) {
 
   # check here to make sure that LENGTH and POS are numeric and coerce REF and ALT to as.character
   # in case they are already factors.
-  if(is.na(consSeq) && !is.numeric(V$LENGTH)) stop("consSeq is NA so V has column LENGTH, but LENGTH is not numeric!")
+  if(is.null(consSeq) && !is.numeric(V$LENGTH)) stop("consSeq is NULL so V has column LENGTH, but LENGTH is not numeric!")
   if(!is.numeric(V$POS)) stop("POS not numeric in V")
   if(!is.numeric(targets$POS)) stop("POS not numeric in targets")
   if(!is.character(V$REF)) {
@@ -68,17 +71,35 @@ assayize <- function(V, targets,  consSeq = NA, reqDist = 20) {
 
   # if LENGTH REF or ALT are in targets, we need to remove them from there along with a message to the user
   # saying that values from V will be used.
-  if(any(names(targets) %in% c("LENGTH", "REF", "ALT"))) {
-    message("Removing LENGTH, REF, and/or ALT from parameter \"targets\".  Values from V and consSeq will be used.")
+  if(any(names(targets) %in% c("REF", "ALT"))) {
+    message("Removing REF, and/or ALT from parameter \"targets\".  Values from V and consSeq will be used.")
   }
 
+  # SHOULD CHECK TO MAKE SURE THERE ARE NO DUPLICATED CHROM+POSs
 
   # check to make sure REF and ALT are strings and do not include any [^ACGT,]
-  if(any(stringr::str_detect(V$REF, "[^ACGTU]"))) stop("Detected something other than ACGT or U in the REF column in V")
-  if(any(stringr::str_detect(V$ALT, "[^ACGTU,]"))) stop("Detected something other than ACGTU or \",\" in the ALT column in V")
+  if(any(stringr::str_detect(V$REF, "[^ACGTU.]"))) stop("Detected something other than ACGTU or . in the REF column in V")
+  if(any(stringr::str_detect(V$ALT, "[^ACGTU,.-]"))) stop("Detected something other than ACGTU or , or . or - in the ALT column in V")
 
-  # if LENGTH is missing but consSeq is not, then I could certainly get LENGTH from that
-  # file....
+  # if we have consSeq then we add a column LENGTH to it, and we also add that to V
+  if(!is.null(consSeq)) {
+    consSeq <- consSeq %>%
+      mutate(LENGTH = nchar(Seq)) %>%
+      select(CHROM, Seq, LENGTH)  # strip it down to only these
+
+    if("LENGTH" %in% names(V)) {
+      message("Note: V has a column called LENGTH, but consSeq is not NULL")
+      message("We will report warnings, but not errors, if the LENGTH in V,")
+      message("now called LENGTH.V, does not accord with those in consSeq")
+      V <- V %>%
+        rename(LENGTH.V = LENGTH)
+    }
+
+    # here we add LENGTH and the Seq's to V
+    V <- V %>%
+      left_join(., consSeq %>% select(CHROM, LENGTH))
+
+  }
 
   # make a named vector of IUPAC codes here:
   iupac <- c(`A` = "A",
@@ -96,6 +117,7 @@ assayize <- function(V, targets,  consSeq = NA, reqDist = 20) {
              `AGT` = "D",
              `ACT` = "H",
              `ACG` = "V",
+             `ACGT` = "N",
              `N` = "N",
              `.` = ".",
              `-` = "-"
@@ -131,18 +153,49 @@ assayize <- function(V, targets,  consSeq = NA, reqDist = 20) {
     mutate(BasesPresent = bases_present(REF, ALT),
            IUPAC = iupac[as.character(BasesPresent)])
 
-  if(is.na(consSeq)) {
-    return(summaries)
+
+
+
+  # if we *do* have those consensus sequences, this is the part we are all waiting for!
+  # We put the IUPAC codes and
+  # snp design specifications in the actual sequences (as long as we have them---i.e.
+  # consSeq is not NULL)
+  if(!is.null(consSeq)) {
+    # quick function.  seq is a sequence, pos is a vector of positions within that sequence
+    # and iup is a vector of iupac codes for those positions at those positions.
+    insert_iupac <- function(seq, pos, iup) {
+      tmp <- stringr::str_split(seq, "")[[1]]
+      tmp[pos] <- iup
+      paste(tmp, collapse = "")
+    }
+    insert_target <- function(seq, pos, ref, alt) {
+      tmp <- stringr::str_split(seq, "")[[1]]
+      tmp[pos] <- paste("[", ref[1], "/", alt[1], "]", sep = "")  # shouldn't need the [1]'s in there but put them in just in case...
+      paste(tmp, collapse = "")
+    }
+
+    # down here we will attach a column with strings showing where variation is (with iupac codes) and with
+    # the SNP that is to be assayed as, for example, "[A/G]"
+    # first, we just put iupac codes in everywhere...
+    summaries <- summaries %>%
+      left_join(., consSeq %>% select(CHROM, Seq)) %>%
+      group_by(CHROM) %>%
+      mutate(Seq = insert_iupac(Seq, POS, IUPAC)) %>%
+      group_by(CHROM, POS) %>%
+      mutate(Seq = insert_target(Seq, POS, REF, ALT)) %>%
+      ungroup
   }
 
-  # down here we will attach a column with strings showing where variation is (with iupac codes) and with
-  # the SNP that is to be assayed as, for example, "[A/G]"
-  # first, we just put iupac codes in everywhere...
 
 
-  # and then we filter out just the SNPs that are to have assays designed, and we
-  # put their designations into the sequences.
+  # prep to return just the stuff that is desired
+  if(allVar == TRUE) {
+    ret <-left_join(summaries, targets)
+  } else {
+    ret <- right_join(summaries, targets)
+  }
 
+  ret
 }
 
 
