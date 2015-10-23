@@ -1,6 +1,6 @@
 ---
 title: "Example Uses of snps2assays"
-author: "Vignette Author"
+author: "Eric C. Anderson"
 date: "`r Sys.Date()`"
 output: rmarkdown::html_vignette
 vignette: >

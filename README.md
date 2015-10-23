@@ -13,9 +13,16 @@ You can install this directly from GitHub using Hadley Wickham's `devtools` pack
 devtools::install_github("eriqande/snps2assays", build_vignettes = TRUE)
 ```
 
-Once you have it installed, try this:
+Once you have it installed, try the usual suspects to learn about the package.  Some useful
+entry points will be:
 ```r
+vignette("snps2assays")
 
+package?snps2assays
+
+help(package = "snps2assays")
+
+?assayize
 ```
 
 ## Terms 
