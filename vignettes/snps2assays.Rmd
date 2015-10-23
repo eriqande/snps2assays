@@ -76,6 +76,7 @@ and `Seq` (the consensus sequence).
 
 ## Putting it All Together
 
+### Doing it if you have the sequences
 Now, we see how to put those together and toss everything into `assayize()`.
 ```{r}
 # get the vcf file:
@@ -88,5 +89,33 @@ fasta <- grab_fasta(system.file("textdata", "fasta.txt.gz", package = "snps2assa
 data(example_target_snps)
 
 # now, assayize them!
+assays <- assayize(vcf, example_target_snps, fasta)
+assays
+```
 
+
+### Doing it with just the VCF information and lengths of contigs
+
+If we don't have (or don't want to hassle getting) the consensus sequences, we can
+still run `assayize` with just the info you might have in the VCF file (though you can't
+check GC Content or output the sequences for assay design).   However, you need to
+know the length of each contig.  In our example data, that information is part
+of the RAD locus name (it is the 6th underscore-separated field), so we can use that.
+
+Let's make a new V data frame that has a `LENGTH` column:
+```{r, comment = ""}
+vcf2 <- vcf %>%
+  mutate(LENGTH = stringr::str_split(CHROM, "_") %>%
+           lapply("[", 6) %>%
+           unlist %>%
+           as.numeric # Note that if LENGTH is not numeric, assayize will throw an error!
+  )
+```
+
+Now that `vcf2` has a `LENGTH` column, we can assayize it.
+And for fun, let's require more distance around the SNP
+and only return the target SNPs:
+```{r, comment = ""}
+assays2 <- assayize(vcf2, example_target_snps, reqDist = 25, allVar = FALSE)
+assays2
 ```

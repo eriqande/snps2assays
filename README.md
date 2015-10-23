@@ -10,9 +10,13 @@ to order the assays.
 
 You can install this directly from GitHub using Hadley Wickham's `devtools` package:
 ```r
-devtools::install_github("eriqande/snps2assays")
+devtools::install_github("eriqande/snps2assays", build_vignettes = TRUE)
 ```
 
+Once you have it installed, try this:
+```r
+
+```
 
 ## Terms 
 

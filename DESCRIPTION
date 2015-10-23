@@ -10,7 +10,7 @@ Description: An R-package to help prepare Fluidigm SNPtype assays (or similar as
   a data frame of variable sites, a data frame of desired SNPs, and a data frame of the
   consensus sequences of each ddRAD or RAD locus, and it returns the information needed
   to order the assays.
-License: 
+License: Public Domain, CC0 1.0
 LazyData: TRUE
 Depends: dplyr
 Imports: stringr
