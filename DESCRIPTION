@@ -5,15 +5,19 @@ Version: 0.1
 Date: 2015-10-20
 Author: Who wrote it
 Maintainer: Who to complain to <eric.anderson@noaa.gov>
-Description: An R-package to help prepare Fluidigm SNPtype assays (or similar assays) from
-  reduced-representation library loci (for example ddRAD or RAD loci).  You pass in a
-  a data frame of variable sites, a data frame of desired SNPs, and a data frame of the
-  consensus sequences of each ddRAD or RAD locus, and it returns the information needed
-  to order the assays.
+Description: An R-package to help prepare Fluidigm SNPtype assays (or similar
+    assays) from reduced-representation library loci (for example ddRAD or RAD
+    loci). You pass in a a data frame of variable sites, a data frame of desired
+    SNPs, and a data frame of the consensus sequences of each ddRAD or RAD locus,
+    and it returns the information needed to order the assays.
 License: Public Domain, CC0 1.0
 LazyData: TRUE
-Depends: dplyr
-Imports: stringr
-Suggests: knitr,
+Depends:
+    dplyr
+Imports:
+    stringr
+Suggests:
+    knitr,
     rmarkdown
 VignetteBuilder: knitr
+RoxygenNote: 5.0.1
