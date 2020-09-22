@@ -2,7 +2,7 @@
 % Please edit documentation in R/functions.R
 \name{grab_fasta}
 \alias{grab_fasta}
-\title{read in a fasta file and turn into a tbl_df data frame}
+\title{read in a fasta file and turn into a tibble}
 \usage{
 grab_fasta(path)
 }
@@ -13,11 +13,10 @@ be gunzipped on the fly.}
 \description{
 This reads in a fasta file and removes the leading ">" from the name of the contig
 so that it will match stuff in a corresponding VCF or other variant file.
-It then returns a tbl_df data frame with columns CHROM and consSeq.  Currently this
+It then returns a tibble with columns CHROM and consSeq.  Currently this
 only woks on files that have two line for each sequence, not with files that break the
 sequence over multiple lines.
 }
 \examples{
 grab_fasta(system.file("textdata", "fasta.txt.gz", package = "snps2assays"))
 }
-

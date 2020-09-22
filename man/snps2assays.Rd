@@ -3,7 +3,6 @@
 \docType{package}
 \name{snps2assays}
 \alias{snps2assays}
-\alias{snps2assays-package}
 \title{snps2assays: a package for preparing SNPtype-like assay orders from ddRAD or RAD locus data}
 \description{
 This package provides one main function, \code{\link{assayize}}, that takes, as
@@ -18,4 +17,3 @@ It also provides two other functions, \code{\link{grab_vcf}} and
 \code{\link{grab_fasta}} for reading (possibly gzipped) VCF and fasta
 files into data frames appropriate for use in \code{\link{assayize}}.
 }
-

@@ -18,8 +18,10 @@ There are also a few helper functions to get from common formats to the necessar
 For example, from VCF to a data frame of all the variants, or from FASTA to a data frame
 of consensus sequences.  We demonstrate those in a series of workflows here.
 
-Let's get going by loading the package:
+Let's get going by loading the tidyverse and then loading the package
 ```{r, message=FALSE}
+#library(tidyverse)
+library(magrittr)
 library(snps2assays)
 ```
 
@@ -105,7 +107,7 @@ of the RAD locus name (it is the 6th underscore-separated field), so we can use 
 Let's make a new V data frame that has a `LENGTH` column:
 ```{r, comment = ""}
 vcf2 <- vcf %>%
-  mutate(LENGTH = stringr::str_split(CHROM, "_") %>%
+  dplyr::mutate(LENGTH = stringr::str_split(CHROM, "_") %>%
            lapply("[", 6) %>%
            unlist %>%
            as.numeric # Note that if LENGTH is not numeric, assayize will throw an error!

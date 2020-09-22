@@ -77,12 +77,14 @@
 
 #' }
 #'
-#' If \code{allVar} is set to FALSE then only rows corresponding to SNPs in \link{targets} will
+#' If \code{allVar} is set to FALSE then only rows corresponding to SNPs in \code{targets} will
 #' be returned.  If \code{allVar} is TRUE, then all the SNPs in V that fall in the contigs within
 #' which the SNPs in \code{targets} fall will be returned (one row for each).  In that case, the
 #' "\code{Any other columns that were present in targets}" will be NA.
 #' @export
 #' @examples
+#' library(dplyr)
+#'
 #' # get the vcf file:
 #' vcf <- grab_vcf(system.file("textdata", "vcf.txt.gz", package = "snps2assays"))
 #'
@@ -290,11 +292,11 @@ assayize <- function(V,
 
 
 
-#' read in a fasta file and turn into a tbl_df data frame
+#' read in a fasta file and turn into a tibble
 #'
 #' This reads in a fasta file and removes the leading ">" from the name of the contig
 #' so that it will match stuff in a corresponding VCF or other variant file.
-#' It then returns a tbl_df data frame with columns CHROM and consSeq.  Currently this
+#' It then returns a tibble with columns CHROM and consSeq.  Currently this
 #' only woks on files that have two line for each sequence, not with files that break the
 #' sequence over multiple lines.
 #' @param path  The path to the fasta file. If it is gzipped, it will automatically
@@ -309,7 +311,7 @@ grab_fasta <- function(path) {
     matrix(ncol = 2, byrow = TRUE) %>%
     as.data.frame(stringsAsFactors = FALSE) %>%
     setNames(c("CHROM", "Seq")) %>%
-    tbl_df %>%
+    tibble::as_tibble() %>%
     mutate(CHROM = stringr::str_replace_all(CHROM, "^>", ""))
 
   close(con)
@@ -346,12 +348,11 @@ grab_vcf <- function(path, all_cols = FALSE, top_test = 200) {
 
   head_line <- which(tmp)
 
-  ret <- read.table(con,
-                    comment = "",
-                    skip = head_line - 1,
-                    header = TRUE,
-                    stringsAsFactors = FALSE) %>%
-    tbl_df
+  ret <- readr::read_table2(
+    con,
+    comment = "",
+    skip = head_line - 1
+  )
 
   names(ret)[1] <- "CHROM"  # deal with the comment character at the beginning there
 

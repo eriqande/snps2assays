@@ -4,8 +4,15 @@
 \alias{assayize}
 \title{Prepare SNPs for assay orders (calculate SNP flanking distances, GC content, and write out sequence)}
 \usage{
-assayize(V, targets, consSeq = NULL, reqDist = 20, reqDistFromEnd = 40,
-  GCmax = 0.65, allVar = TRUE)
+assayize(
+  V,
+  targets,
+  consSeq = NULL,
+  reqDist = 20,
+  reqDistFromEnd = 40,
+  GCmax = 0.65,
+  allVar = TRUE
+)
 }
 \arguments{
 \item{V}{a data frame of all the variants detected in sequences from individuals.
@@ -76,7 +83,7 @@ appended to it. Namely, you can expect the following columns.
  and POS}
 }
 
-If \code{allVar} is set to FALSE then only rows corresponding to SNPs in \link{targets} will
+If \code{allVar} is set to FALSE then only rows corresponding to SNPs in \code{targets} will
 be returned.  If \code{allVar} is TRUE, then all the SNPs in V that fall in the contigs within
 which the SNPs in \code{targets} fall will be returned (one row for each).  In that case, the
 "\code{Any other columns that were present in targets}" will be NA.
@@ -93,6 +100,8 @@ input, data frames of:
 It returns information needed for screening variation and ordering SNP assays.
 }
 \examples{
+library(dplyr)
+
 # get the vcf file:
 vcf <- grab_vcf(system.file("textdata", "vcf.txt.gz", package = "snps2assays"))
 
@@ -121,4 +130,3 @@ vcf2 <- vcf \%>\%
 assays2 <- assayize(vcf2, example_target_snps, reqDist = 25, allVar = FALSE)
 assays2
 }
-

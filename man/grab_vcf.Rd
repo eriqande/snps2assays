@@ -26,4 +26,3 @@ this function returns
 \examples{
 grab_vcf(system.file("textdata", "vcf.txt.gz", package = "snps2assays"))
 }
-
