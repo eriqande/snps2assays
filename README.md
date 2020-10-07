@@ -1,5 +1,8 @@
 # snps2assays
 
+[![DOI](https://zenodo.org/badge/44692435.svg)](https://zenodo.org/badge/latestdoi/44692435)
+
+
 This is an R-package to help prepare Fluidigm SNPtype assays (or similar assays) from 
 reduced-representation library loci (for example ddRAD or RAD loci).  You pass in
 a data frame of variable sites, a data frame of desired SNPs, and a data frame of the 
